@@ -1935,6 +1935,13 @@ const CODE_VERSION = '2.0.0';
 // never appended to the shareable link itself.
 const ACCESS_CODE = 'ANDES2026';
 
+// Entering this instead of ACCESS_CODE at the gate skips straight to
+// submission with auto-filled dummy answers, tagged is_test: true in the
+// payload. Use it to confirm Supabase + the Google Sheet are both wired up
+// correctly without walking the whole survey by hand. Change this too before
+// running the real study, so a participant can't stumble into test mode.
+const TEST_CODE = 'TESTMODE';
+
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyUxAgH8XH9Gllx15zR543LzFuLPBXvbNRyQ56_U5rb27ZdjEZ-J7M8LY51vIIJVts/exec';
 
 // Supabase (primary data store). Create the table with supabase-setup.sql,
@@ -1994,6 +2001,7 @@ const PRODUCTS = {
 const state = {
   participantId:      null,
   condition:          null,
+  isTest:             false,
   hunger:             {},
   demographics:       {},
   selfPerception:     {},
@@ -2085,6 +2093,13 @@ function setProgress(id) {
 function screenGateNext() {
   const input = document.getElementById('gate-code').value.trim();
   const err = document.getElementById('err-gate');
+
+  if (input.toLowerCase() === TEST_CODE.toLowerCase()) {
+    err.classList.remove('visible');
+    runTestSubmission();
+    return;
+  }
+
   if (input.toLowerCase() !== ACCESS_CODE.toLowerCase()) {
     err.classList.add('visible');
     return;
@@ -2092,6 +2107,57 @@ function screenGateNext() {
   err.classList.remove('visible');
   sessionStorage.setItem('gatePassed', '1');
   goToId('s1');
+}
+
+// Fills every field with valid dummy data and submits through the real
+// Supabase + Sheets pipeline, tagged is_test: true, so a researcher can
+// confirm both destinations are wired up correctly without hand-walking
+// the entire survey. Skipped entirely for real participants.
+function likertDummy(items, value) {
+  return Object.fromEntries(items.map(it => [it.name, value]));
+}
+
+function runTestSubmission() {
+  state.participantId = generateUUID();
+  state.condition = CONDITIONS[Math.floor(Math.random() * CONDITIONS.length)];
+  state.isTest = true;
+
+  state.hunger = { hunger_vas: 50 };
+  state.demographics = { height_cm: 170, weight_kg: 68, bmi: 23.5, age: '20-21', gender: 'female' };
+  state.selfPerception = { self_healthy: 5, self_description: 'Test entry - connectivity check, not a real participant.' };
+  state.controls = { app_usage_freq: 2, app_usage_apps: 'None', diet_restrictions: 'None' };
+  state.healthConsciousness = { health_consc_1: 5, health_consc_2: 5, health_consc_3: 5, health_consc_4: 5, health_consc_5: 5 };
+  state.regulatoryFocus = likertDummy(MEASURES.regfocus, 3);
+  state.traitReactance = { trait_reactance_1: 4, trait_reactance_2: 4, trait_reactance_3: 4, trait_reactance_4: 4 };
+  state.targets = { calorie: 2000, protein: 120 };
+
+  ensureItemOrder();
+  MEAL_ORDER.forEach(meal => {
+    state.chosen[meal] = PRODUCTS[meal][0];
+    state.chosen[meal + '_drink'] = PRODUCTS.drinks[0];
+    state.swapOffered[meal] = false;
+    state.swapOffered[meal + '_drink'] = false;
+    state.swapAccepted[meal] = null;
+    state.swapAccepted[meal + '_drink'] = null;
+  });
+  state.choiceTimeline = [{ key: 'breakfast', item_id: PRODUCTS.breakfast[0].id, ms: 1000, is_change: false }];
+  state.choiceChanges = 0;
+  state.timeOnProductPage = 5;
+
+  state.decisionEffort = { decision_effort_1: 3, decision_effort_2: 3, decision_effort_3: 3 };
+  state.postChoice = { post_why: 'Test entry.', post_confidence: 5, post_satisfaction: 5 };
+  state.stateReactance = { state_reactance_irritated: 1, state_reactance_annoyed: 1, state_reactance_angry: 1, state_reactance_aggravated: 1 };
+  state.reactanceFreedom = likertDummy(MEASURES.reactanceFreedom, 1);
+  state.reactanceCounter = likertDummy(MEASURES.reactanceCounter, 1);
+  state.perceivedUsefulness = { perceived_useful_1: 4, perceived_useful_2: 4, perceived_useful_3: 4, perceived_useful_4: 4 };
+  state.continuedUse = { continued_use_1: 4, continued_use_2: 4, continued_use_3: 4 };
+  state.comprehension = { comprehension_1: 5, comprehension_2: 5, comprehension_3: 5 };
+  state.rankOrder = PRODUCTS.lunch.map(p => p.id);
+  state.rankScore = 1;
+  state.manipulationCheck = 'nutrition_info';
+  state.attentionCheck = 5;
+
+  submitData();
 }
 
 // ── SCREEN 1: CONSENT ─────────────────────────────────────────────────────────
@@ -2907,6 +2973,7 @@ async function submitData() {
     participant_id:                state.participantId,
     timestamp:                     new Date().toISOString(),
     code_version:                  CODE_VERSION,
+    is_test:                       state.isTest,
     condition:                     state.condition,
     breakfast_order:               (state.itemOrder.breakfast || []).join(','),
     lunch_order:                   (state.itemOrder.lunch || []).join(','),

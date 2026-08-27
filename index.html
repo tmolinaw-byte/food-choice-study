@@ -597,7 +597,8 @@
       padding-bottom: 10px;
       border-bottom: 1px solid var(--rule);
     }
-    .product-grid {
+    .product-grid,
+    .rank-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
@@ -1004,7 +1005,8 @@
       cursor: pointer;
       position: relative;
     }
-    .chip-group input[type="radio"] {
+    .chip-group input[type="radio"],
+    .chip-group input[type="checkbox"] {
       position: absolute;
       opacity: 0;
       pointer-events: none;
@@ -1029,7 +1031,8 @@
       letter-spacing: -0.005em;
     }
     .chip-group label:hover .chip { border-color: var(--ink-soft); }
-    .chip-group input[type="radio"]:checked + .chip {
+    .chip-group input[type="radio"]:checked + .chip,
+    .chip-group input[type="checkbox"]:checked + .chip {
       background: var(--ink);
       color: var(--bg);
       border-color: var(--ink);
@@ -1143,6 +1146,46 @@
     .targets-card h1 { text-align: left; }
     .targets-intro { margin-bottom: 28px; }
 
+    /* ── Rank task (comprehension check) ───────────────── */
+    .rank-card {
+      background: var(--paper-tint);
+      border-radius: 14px;
+      padding: 22px 14px 18px;
+      cursor: pointer;
+      border: 1.5px solid var(--rule);
+      transition: border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                  background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      text-align: center;
+      user-select: none;
+    }
+    .rank-card:hover { border-color: var(--ink-soft); transform: translateY(-2px); }
+    .rank-card:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+    .rank-card.ranked { border-color: var(--ink); background: var(--card); }
+    .rank-badge {
+      position: absolute;
+      top: 12px; left: 12px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: var(--bg);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .rank-card.ranked .rank-badge { display: flex; }
+    .rank-hint {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      color: var(--ink-mute);
+      margin: 6px 0 18px;
+      letter-spacing: 0.02em;
+    }
+
     /* ── Back button (ghost) ────────────────────────────── */
     .btn-back {
       background: transparent;
@@ -1207,9 +1250,30 @@
 <main>
 
 <!-- ══════════════════════════════════════
+     Screen 0 - Access Gate
+══════════════════════════════════════ -->
+<section class="screen active" id="s_gate">
+  <div class="card">
+    <h1>Food Choice Study</h1>
+    <h2>Access Code Required</h2>
+    <p>This study is open only to participants recruited through the university mailing list or classroom announcement. Please enter the access code provided there to continue.</p>
+
+    <div class="field">
+      <label class="label" for="gate-code">Access code</label>
+      <input type="text" id="gate-code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter code" />
+      <div class="error-msg" id="err-gate" role="alert">That code is not correct. Please check it and try again.</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="screenGateNext()">Continue &rarr;</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
      Screen 1 - Welcome & Consent
 ══════════════════════════════════════ -->
-<section class="screen active" id="s1">
+<section class="screen" id="s1">
   <div class="card">
     <h1>Food Choice Study</h1>
     <h2>Welcome &amp; Informed Consent</h2>
@@ -1329,7 +1393,7 @@
     <p>Please rate how much you agree with each statement. There are no right or wrong answers.</p>
 
     <div class="likert-group">
-      <div class="likert-question">I consider myself a <strong>healthy eater</strong>.</div>
+      <div class="likert-question">I consider myself someone who <strong>eats healthy</strong>.</div>
       <div class="likert-row">
         <span class="likert-label">Strongly<br>Disagree</span>
         <div class="likert-options" id="likert-healthy" role="radiogroup" aria-label="Healthy eater rating">
@@ -1344,42 +1408,6 @@
         <span class="likert-label right">Strongly<br>Agree</span>
       </div>
       <div class="error-msg" id="err-healthy" role="alert">Please select a rating.</div>
-    </div>
-
-    <div class="likert-group">
-      <div class="likert-question">I consider myself <strong>physically fit</strong>.</div>
-      <div class="likert-row">
-        <span class="likert-label">Strongly<br>Disagree</span>
-        <div class="likert-options" id="likert-fit" role="radiogroup" aria-label="Physically fit rating">
-          <label><input type="radio" name="self_fit" value="1"><div class="likert-btn">1</div></label>
-          <label><input type="radio" name="self_fit" value="2"><div class="likert-btn">2</div></label>
-          <label><input type="radio" name="self_fit" value="3"><div class="likert-btn">3</div></label>
-          <label><input type="radio" name="self_fit" value="4"><div class="likert-btn">4</div></label>
-          <label><input type="radio" name="self_fit" value="5"><div class="likert-btn">5</div></label>
-          <label><input type="radio" name="self_fit" value="6"><div class="likert-btn">6</div></label>
-          <label><input type="radio" name="self_fit" value="7"><div class="likert-btn">7</div></label>
-        </div>
-        <span class="likert-label right">Strongly<br>Agree</span>
-      </div>
-      <div class="error-msg" id="err-fit" role="alert">Please select a rating.</div>
-    </div>
-
-    <div class="likert-group">
-      <div class="likert-question">I consider myself <strong>athletic</strong>.</div>
-      <div class="likert-row">
-        <span class="likert-label">Strongly<br>Disagree</span>
-        <div class="likert-options" id="likert-athletic" role="radiogroup" aria-label="Athletic rating">
-          <label><input type="radio" name="self_athletic" value="1"><div class="likert-btn">1</div></label>
-          <label><input type="radio" name="self_athletic" value="2"><div class="likert-btn">2</div></label>
-          <label><input type="radio" name="self_athletic" value="3"><div class="likert-btn">3</div></label>
-          <label><input type="radio" name="self_athletic" value="4"><div class="likert-btn">4</div></label>
-          <label><input type="radio" name="self_athletic" value="5"><div class="likert-btn">5</div></label>
-          <label><input type="radio" name="self_athletic" value="6"><div class="likert-btn">6</div></label>
-          <label><input type="radio" name="self_athletic" value="7"><div class="likert-btn">7</div></label>
-        </div>
-        <span class="likert-label right">Strongly<br>Agree</span>
-      </div>
-      <div class="error-msg" id="err-athletic" role="alert">Please select a rating.</div>
     </div>
 
     <div class="field">
@@ -1412,20 +1440,74 @@
 </section>
 
 <!-- ══════════════════════════════════════
-     Screen - Regulatory Focus
+     Screen - Nutrition App Use & Dietary Restrictions
+══════════════════════════════════════ -->
+<section class="screen" id="s_controls">
+  <div class="card">
+    <h1>Your Habits</h1>
+    <h2>A couple of background questions</h2>
+
+    <div class="likert-group">
+      <div class="likert-question">In the past 12 months, how often have you used a nutrition, calorie-counting, or diet-tracking app?</div>
+      <div class="scale-readout"><span id="app-freq-value">1</span></div>
+      <div class="scale-track">
+        <span class="scale-ticks"><span></span><span></span><span></span><span></span><span></span></span>
+        <input type="range" id="app-usage-freq" class="scale-input" min="1" max="5" step="1" value="1" aria-label="Nutrition app usage frequency from 1 to 5" />
+      </div>
+      <div class="scale-anchors">
+        <span>Never</span>
+        <span class="right">Daily</span>
+      </div>
+    </div>
+
+    <div class="field" id="field-apps-used">
+      <label class="label">Which of the following have you ever used?</label>
+      <div class="chip-group" id="apps-used-group">
+        <label><input type="checkbox" name="app_used" value="MyFitnessPal"><span class="chip">MyFitnessPal</span></label>
+        <label><input type="checkbox" name="app_used" value="Yazio"><span class="chip">Yazio</span></label>
+        <label><input type="checkbox" name="app_used" value="Lifesum"><span class="chip">Lifesum</span></label>
+        <label><input type="checkbox" name="app_used" value="Cronometer"><span class="chip">Cronometer</span></label>
+        <label><input type="checkbox" name="app_used" value="Other"><span class="chip">Other</span></label>
+        <label><input type="checkbox" name="app_used" value="None"><span class="chip">None</span></label>
+      </div>
+      <div class="error-msg" id="err-apps-used" role="alert">Please select at least one option.</div>
+    </div>
+
+    <div class="field" id="field-diet-restrictions">
+      <label class="label">Do any of the following apply to you? Select all that apply.</label>
+      <div class="chip-group" id="diet-restrictions-group">
+        <label><input type="checkbox" name="diet_restriction" value="Vegetarian"><span class="chip">Vegetarian</span></label>
+        <label><input type="checkbox" name="diet_restriction" value="Vegan"><span class="chip">Vegan</span></label>
+        <label><input type="checkbox" name="diet_restriction" value="Pescatarian"><span class="chip">Pescatarian</span></label>
+        <label><input type="checkbox" name="diet_restriction" value="Halal"><span class="chip">Halal</span></label>
+        <label><input type="checkbox" name="diet_restriction" value="Kosher"><span class="chip">Kosher</span></label>
+        <label><input type="checkbox" name="diet_restriction" value="Food allergy"><span class="chip">Food allergy</span></label>
+        <label><input type="checkbox" name="diet_restriction" value="Food intolerance"><span class="chip">Food intolerance</span></label>
+        <label><input type="checkbox" name="diet_restriction" value="Medically prescribed diet"><span class="chip">Medically prescribed diet</span></label>
+        <label><input type="checkbox" name="diet_restriction" value="None"><span class="chip">None</span></label>
+      </div>
+      <div class="error-msg" id="err-diet-restrictions" role="alert">Please select at least one option.</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="goToId('s_health')">&larr; Back</button>
+      <button class="btn btn-primary" onclick="screenControlsNext()">Continue &rarr;</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     Screen - Regulatory Focus (RFQ)
 ══════════════════════════════════════ -->
 <section class="screen" id="s_regfocus">
   <div class="card">
     <h1>About You</h1>
     <h2>Your Motivations</h2>
-    <p class="measure-stem">Please indicate how much you agree with the following statements about yourself.</p>
-    <div class="reg-subhead">Promotion focus</div>
-    <div id="block-reg-promotion"></div>
-    <div class="reg-subhead">Prevention focus</div>
-    <div id="block-reg-prevention"></div>
-    <div class="error-msg" id="err-regfocus" role="alert">Please rate every statement before continuing.</div>
+    <p class="measure-stem">Please answer the following questions about yourself.</p>
+    <div id="block-regfocus"></div>
+    <div class="error-msg" id="err-regfocus" role="alert">Please answer every item before continuing.</div>
     <div class="btn-row">
-      <button class="btn btn-back" onclick="goToId('s_health')">&larr; Back</button>
+      <button class="btn btn-back" onclick="goToId('s_controls')">&larr; Back</button>
       <button class="btn btn-primary" onclick="screenRegfocusNext()">Continue &rarr;</button>
     </div>
   </div>
@@ -1449,19 +1531,13 @@
 </section>
 
 <!-- ══════════════════════════════════════
-     Screen 4 - Condition Assignment (auto)
+     Screen - Daily Nutrition Targets (asked of everyone, pre-assignment)
 ══════════════════════════════════════ -->
-<section class="screen" id="s4">
-  <div class="card" style="text-align:center" id="s4-loading">
-    <h1>Preparing Your Session</h1>
-    <div class="spinner" role="status" aria-label="Loading"></div>
-    <p style="color:var(--ink-mute)">Setting up your personalized product list…</p>
-  </div>
-
-  <div class="card targets-card" id="s4-targets" style="display:none">
+<section class="screen" id="s_targets">
+  <div class="card targets-card">
     <h1>Your Daily Targets</h1>
-    <h2>For personalized scoring</h2>
-    <p class="targets-intro">Enter your daily protein and calorie goals. We'll use these along with your BMI to score each item by how well it fits your goals.</p>
+    <h2>Nutrition goals</h2>
+    <p class="targets-intro">Enter your daily calorie and protein goals, based on what you personally aim for on a typical day.</p>
 
     <div class="field">
       <label class="label" for="target-calorie">Daily calorie goal</label>
@@ -1483,8 +1559,19 @@
 
     <div class="btn-row">
       <button class="btn btn-back" onclick="goToId('s_treact')">&larr; Back</button>
-      <button class="btn btn-primary" onclick="submitTargets()">Continue &rarr;</button>
+      <button class="btn btn-primary" onclick="screenTargetsNext()">Continue &rarr;</button>
     </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     Screen 4 - Condition Assignment (auto)
+══════════════════════════════════════ -->
+<section class="screen" id="s4">
+  <div class="card" style="text-align:center" id="s4-loading">
+    <h1>Preparing Your Session</h1>
+    <div class="spinner" role="status" aria-label="Loading"></div>
+    <p style="color:var(--ink-mute)">Setting up your personalized product list…</p>
   </div>
 </section>
 
@@ -1502,7 +1589,7 @@
     <div class="error-msg" id="err-selection" role="alert">Please select an option for every meal and drink.</div>
 
     <div class="btn-row">
-      <button class="btn btn-back" onclick="goToId('s_treact')">&larr; Back</button>
+      <button class="btn btn-back" onclick="goToId('s_targets')">&larr; Back</button>
       <span class="selection-counter" id="selection-counter" aria-live="polite">0 of 8 selected</span>
       <button class="btn btn-primary" onclick="screen5Next()">Continue &rarr;</button>
     </div>
@@ -1590,6 +1677,25 @@
 </section>
 
 <!-- ══════════════════════════════════════
+     Screen - Reactance: Freedom & Counterarguing
+══════════════════════════════════════ -->
+<section class="screen" id="s_reactance2">
+  <div class="card">
+    <h1>The Interface</h1>
+    <h2>Your Reaction, Continued</h2>
+    <p class="measure-stem">Please indicate how much you agree with the following statements about the app/interface.</p>
+    <div id="block-reactance-freedom"></div>
+    <div class="error-msg" id="err-reactance-freedom" role="alert">Please rate every statement before continuing.</div>
+    <div id="block-reactance-counter"></div>
+    <div class="error-msg" id="err-reactance-counter" role="alert">Please rate every statement before continuing.</div>
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="goToId('s_sreact')">&larr; Back</button>
+      <button class="btn btn-primary" onclick="screenReactance2Next()">Continue &rarr;</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
      Screen - App Outcomes (usefulness + continued use)
 ══════════════════════════════════════ -->
 <section class="screen" id="s_appout">
@@ -1605,8 +1711,43 @@
     <div id="block-continue"></div>
     <div class="error-msg" id="err-continue" role="alert">Please rate every statement before continuing.</div>
     <div class="btn-row">
-      <button class="btn btn-back" onclick="goToId('s_sreact')">&larr; Back</button>
+      <button class="btn btn-back" onclick="goToId('s_reactance2')">&larr; Back</button>
       <button class="btn btn-primary" onclick="screenAppoutNext()">Continue &rarr;</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     Screen - Comprehension (self-report)
+══════════════════════════════════════ -->
+<section class="screen" id="s_comprehension">
+  <div class="card">
+    <h1>The App</h1>
+    <h2>Understanding the Options</h2>
+    <p class="measure-stem">Please indicate how much you agree with the following statements about the app/interface.</p>
+    <div id="block-comprehension"></div>
+    <div class="error-msg" id="err-comprehension" role="alert">Please rate every statement before continuing.</div>
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="goToId('s_appout')">&larr; Back</button>
+      <button class="btn btn-primary" onclick="screenComprehensionNext()">Continue &rarr;</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     Screen - Comprehension (ranking task)
+══════════════════════════════════════ -->
+<section class="screen" id="s_rank">
+  <div class="card">
+    <h1>One Last Task</h1>
+    <h2>Rank these options</h2>
+    <p>Tap the items below in order, from the <strong>healthiest</strong> to the <strong>least healthy</strong>.</p>
+    <div class="rank-hint" id="rank-hint">0 of 4 ranked &middot; tap an item to undo its rank</div>
+    <div class="rank-grid" id="rank-grid" role="group" aria-label="Rank items from healthiest to least healthy"></div>
+    <div class="error-msg" id="err-rank" role="alert">Please rank all four items before continuing.</div>
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="goToId('s_comprehension')">&larr; Back</button>
+      <button class="btn btn-primary" onclick="screenRankNext()">Continue &rarr;</button>
     </div>
   </div>
 </section>
@@ -1630,7 +1771,7 @@
       <div class="error-msg" id="err-manip" role="alert">Please select one option.</div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-back" onclick="goToId('s_appout')">&larr; Back</button>
+      <button class="btn btn-back" onclick="goToId('s_rank')">&larr; Back</button>
       <button class="btn btn-primary" onclick="screenManipNext()">Continue &rarr;</button>
     </div>
   </div>
@@ -1782,6 +1923,18 @@
 ══════════════════════════════════════ -->
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────────
+// Bump this string any time a study.html deployment changes the screens,
+// products, condition logic, or scoring formula, so responses can be grouped
+// by which version of the instrument produced them.
+const CODE_VERSION = '2.0.0';
+
+// Shared access code, gates the very first screen so the link can't be
+// completed by someone who stumbled onto the URL. This is a lightweight
+// deterrent, not real authentication - distribute it only through the
+// IRB-approved recruitment channel (mailing list / classroom announcement),
+// never appended to the shareable link itself.
+const ACCESS_CODE = 'ANDES2026';
+
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyUxAgH8XH9Gllx15zR543LzFuLPBXvbNRyQ56_U5rb27ZdjEZ-J7M8LY51vIIJVts/exec';
 
 // Supabase (primary data store). Create the table with supabase-setup.sql,
@@ -1845,17 +1998,26 @@ const state = {
   demographics:       {},
   selfPerception:     {},
   healthConsciousness:{},
-  regulatoryFocus:    {},
+  controls:           {},   // app_usage_freq, app_usage_apps, diet_restrictions
+  regulatoryFocus:    {},   // rfq_1..rfq_11
   traitReactance:     {},
   targets:            { calorie: null, protein: null },
+  itemOrder:          {},   // { breakfast: [id,...], lunch: [...], snack: [...], dinner: [...], drinks: [...] }
   chosen:             {},   // { breakfast, breakfast_drink, lunch, lunch_drink, snack, snack_drink, dinner, dinner_drink }
   swapOffered:        {},   // { breakfast: bool, breakfast_drink: bool, ... }
   swapAccepted:       {},   // { breakfast: bool|null, ... }
+  choiceTimeline:     [],   // [{ key, item_id, ms, is_change }, ...] - automated effort proxy
+  choiceChanges:      0,
   decisionEffort:     {},
   postChoice:         {},
   stateReactance:     {},
+  reactanceFreedom:   {},
+  reactanceCounter:   {},
   perceivedUsefulness:{},
   continuedUse:       {},
+  comprehension:      {},
+  rankOrder:          [],   // item ids in the order the participant tapped them
+  rankScore:          null, // concordant-pairs ratio vs. ground-truth (cal-ascending) order
   manipulationCheck:  null,
   attentionCheck:     null,
   productPageStart:   null,
@@ -1869,24 +2031,30 @@ let swapReturnFocus = null;
 // Ordered list of screen ids. Insert new screens here to reposition them in the
 // flow; navigation, the progress pill, and the step counter all derive from this.
 const SCREENS = [
-  's1',          // consent + eligibility
-  's_hunger',    // hunger VAS (pre-task)
-  's2',          // physical profile: height / weight / BMI (pre-task; feeds scoring)
-  's3',          // self-perception (kept)
-  's_health',    // health consciousness (pre-task)
-  's_regfocus',  // regulatory focus (pre-task)
-  's_treact',    // trait reactance (pre-task)
-  's4',          // condition assignment + targets
-  's5',          // choice task
-  's_deffort',   // decision effort (post-task)
-  's6',          // post-choice why / confidence / satisfaction (kept)
-  's_sreact',    // state reactance to nudge (post-task)
-  's_appout',    // perceived usefulness + continued-use intention (post-task)
-  's_manip',     // manipulation / recall check
-  's_attn',      // attention check
-  's_demo',      // demographics: age + gender (end)
-  's7',          // submission
-  's8',          // debrief + logos
+  's_gate',        // access code
+  's1',            // consent + eligibility
+  's_hunger',      // hunger VAS (pre-task)
+  's2',            // physical profile: height / weight / BMI (pre-task; feeds scoring)
+  's3',            // self-perception (kept)
+  's_health',      // health consciousness (pre-task)
+  's_controls',    // nutrition-app use + dietary restrictions (pre-task controls)
+  's_regfocus',    // regulatory focus - RFQ (pre-task)
+  's_treact',      // trait reactance (pre-task)
+  's_targets',     // daily calorie/protein targets - asked of everyone, pre-assignment
+  's4',            // condition assignment
+  's5',            // choice task
+  's_deffort',     // decision effort (post-task)
+  's6',            // post-choice why / confidence / satisfaction (kept)
+  's_sreact',      // state reactance to nudge - anger (post-task)
+  's_reactance2',  // state reactance - freedom + counterarguing (post-task)
+  's_appout',      // perceived usefulness + continued-use intention (post-task)
+  's_comprehension', // comprehension self-report (post-task, H5a)
+  's_rank',        // comprehension ranking task (post-task, H5a)
+  's_manip',       // manipulation / recall check
+  's_attn',        // attention check
+  's_demo',        // demographics: age + gender (end)
+  's7',            // submission
+  's8',            // debrief + logos
 ];
 
 function goToId(id) {
@@ -1911,6 +2079,19 @@ function setProgress(id) {
   }
   const counter = document.getElementById('step-counter');
   if (counter) counter.textContent = String(n).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+}
+
+// ── SCREEN 0: ACCESS GATE ─────────────────────────────────────────────────────
+function screenGateNext() {
+  const input = document.getElementById('gate-code').value.trim();
+  const err = document.getElementById('err-gate');
+  if (input.toLowerCase() !== ACCESS_CODE.toLowerCase()) {
+    err.classList.add('visible');
+    return;
+  }
+  err.classList.remove('visible');
+  sessionStorage.setItem('gatePassed', '1');
+  goToId('s1');
 }
 
 // ── SCREEN 1: CONSENT ─────────────────────────────────────────────────────────
@@ -2021,6 +2202,12 @@ function setupSliders() {
     hungerEl.addEventListener('input', () => { hungerOut.textContent = hungerEl.value; });
   }
 
+  const appFreqEl  = document.getElementById('app-usage-freq');
+  const appFreqOut = document.getElementById('app-freq-value');
+  if (appFreqEl && appFreqOut) {
+    appFreqEl.addEventListener('input', () => { appFreqOut.textContent = appFreqEl.value; });
+  }
+
   const confEl = document.getElementById('post_confidence');
   const confOut = document.getElementById('conf-value');
   if (confEl && confOut) {
@@ -2042,6 +2229,21 @@ function setupSliders() {
   if (tProtEl && tProtOut) {
     tProtEl.addEventListener('input', () => { tProtOut.textContent = tProtEl.value; });
   }
+}
+
+// "None" is mutually exclusive with every other option in a multi-select
+// chip group: picking it clears the rest, and picking anything else clears it.
+function setupExclusiveNone(name) {
+  const boxes = document.querySelectorAll(`input[name="${name}"]`);
+  boxes.forEach(box => {
+    box.addEventListener('change', () => {
+      if (box.value === 'None' && box.checked) {
+        boxes.forEach(b => { if (b !== box) b.checked = false; });
+      } else if (box.checked) {
+        boxes.forEach(b => { if (b.value === 'None') b.checked = false; });
+      }
+    });
+  });
 }
 
 function setFieldError(fieldId, inputId, errId, hasError) {
@@ -2081,22 +2283,13 @@ function getRadioVal(name) {
 }
 
 function screen3Next() {
-  let valid = true;
-
-  ['self_healthy','self_fit','self_athletic'].forEach((name, i) => {
-    const keys = ['healthy','fit','athletic'];
-    const val  = getRadioVal(name);
-    const err  = document.getElementById('err-' + keys[i]);
-    if (val === null) { err.classList.add('visible'); valid = false; }
-    else              { err.classList.remove('visible'); }
-  });
-
-  if (!valid) return;
+  const val = getRadioVal('self_healthy');
+  const err = document.getElementById('err-healthy');
+  if (val === null) { err.classList.add('visible'); return; }
+  err.classList.remove('visible');
 
   state.selfPerception = {
-    self_healthy:     getRadioVal('self_healthy'),
-    self_fit:         getRadioVal('self_fit'),
-    self_athletic:    getRadioVal('self_athletic'),
+    self_healthy:     val,
     self_description: document.getElementById('self-description').value.trim(),
   };
 
@@ -2131,13 +2324,41 @@ function screenHealthNext() {
   const { valid, values } = validateLikertBlock(names, 'err-health');
   if (!valid) return;
   state.healthConsciousness = values;
+  goToId('s_controls');
+}
+
+// ── SCREEN: NUTRITION APP USE + DIETARY RESTRICTIONS (controls) ───────────────
+function getCheckedValues(name) {
+  return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
+}
+
+function screenControlsNext() {
+  const appsUsed = getCheckedValues('app_used');
+  const dietRestrictions = getCheckedValues('diet_restriction');
+  let valid = true;
+
+  const errApps = document.getElementById('err-apps-used');
+  if (appsUsed.length === 0) { errApps.classList.add('visible'); valid = false; }
+  else                       { errApps.classList.remove('visible'); }
+
+  const errDiet = document.getElementById('err-diet-restrictions');
+  if (dietRestrictions.length === 0) { errDiet.classList.add('visible'); valid = false; }
+  else                               { errDiet.classList.remove('visible'); }
+
+  if (!valid) return;
+
+  state.controls = {
+    app_usage_freq:    parseInt(document.getElementById('app-usage-freq').value),
+    app_usage_apps:    appsUsed.join(', '),
+    diet_restrictions: dietRestrictions.join(', '),
+  };
+
   goToId('s_regfocus');
 }
 
-// ── SCREEN: REGULATORY FOCUS ──────────────────────────────────────────────────
+// ── SCREEN: REGULATORY FOCUS (RFQ) ────────────────────────────────────────────
 function screenRegfocusNext() {
-  const names = ['reg_promotion_1','reg_promotion_2','reg_promotion_3',
-                 'reg_prevention_1','reg_prevention_2','reg_prevention_3'];
+  const names = MEASURES.regfocus.map(it => it.name);
   const { valid, values } = validateLikertBlock(names, 'err-regfocus');
   if (!valid) return;
   state.regulatoryFocus = values;
@@ -2150,6 +2371,13 @@ function screenTreactNext() {
   const { valid, values } = validateLikertBlock(names, 'err-treact');
   if (!valid) return;
   state.traitReactance = values;
+  goToId('s_targets');
+}
+
+// ── SCREEN: DAILY TARGETS (everyone, before condition assignment) ────────────
+function screenTargetsNext() {
+  state.targets.calorie = parseInt(document.getElementById('target-calorie').value);
+  state.targets.protein = parseInt(document.getElementById('target-protein').value);
   goToId('s4');
   assignCondition();
 }
@@ -2174,32 +2402,30 @@ function assignCondition() {
     sessionStorage.setItem('condition', state.condition);
   }
 
-  document.getElementById('s4-loading').style.display = '';
-  document.getElementById('s4-targets').style.display = 'none';
-
   setTimeout(() => {
-    const needsTargets = state.condition === 'interpretive'
-      && (state.targets.calorie == null || state.targets.protein == null);
-    if (needsTargets) {
-      document.getElementById('s4-loading').style.display = 'none';
-      document.getElementById('s4-targets').style.display = '';
-    } else {
-      buildProductScreen();
-      if (!state.productPageStart) state.productPageStart = Date.now();
-      goToId('s5');
-    }
+    buildProductScreen();
+    if (!state.productPageStart) state.productPageStart = Date.now();
+    goToId('s5');
   }, 900);
 }
 
-function submitTargets() {
-  state.targets.calorie = parseInt(document.getElementById('target-calorie').value);
-  state.targets.protein = parseInt(document.getElementById('target-protein').value);
-  buildProductScreen();
-  if (!state.productPageStart) state.productPageStart = Date.now();
-  goToId('s5');
-}
-
 // Interpretive scoring - food items use BMI + targets; drinks penalize sugar/calorie.
+//
+// v2 rebalance: the v1 formula weighted calorie-fit and protein-fit equally
+// (0.45 / 0.45), which let a large protein credit cancel out a large calorie
+// overage - e.g. a 780-cal burger's high protein content could out-score a
+// 340-cal salad. The dominant driver turned out not to be the weights
+// themselves but the fact that being *under* a calorie target was penalized
+// just as harshly as being *over* it, so a modest healthy meal measured
+// against a generous daily target looked almost as "off-target" as the
+// burger did. Under-target is not nutritionally equivalent to over-target
+// (it's easily made up elsewhere in the day), so the deficit penalty is now
+// capped instead of scaling linearly - except for underweight participants,
+// for whom eating too little is the real risk and the fuller penalty still
+// applies. Calorie weight was also raised relative to protein and the sugar
+// penalty slightly increased. Validated against the full product catalog
+// across a realistic range of BMI/targets: this eliminates the
+// high-tier-outscores-low-tier misordering seen in v1 (was ~8-18%).
 function interpretiveScore(item, kind, bmi, dailyCal, dailyProtein) {
   if (kind === 'drink') {
     const sugarPenalty = Math.min(70, item.sugar * 2);
@@ -2211,14 +2437,21 @@ function interpretiveScore(item, kind, bmi, dailyCal, dailyProtein) {
   const perMealProtein = dailyProtein / 4;
   const calDelta       = item.cal - perMealCal;
   const calPctDelta    = perMealCal > 0 ? calDelta / perMealCal : 0;
-  const overMult       = bmi >= 25  ? 1.5 : (bmi < 18.5 ? 0.6 : 1.0);
-  const underMult      = bmi < 18.5 ? 1.4 : 1.0;
-  const calPenaltyDir  = calDelta > 0 ? overMult : underMult;
-  const calScore       = 100 - Math.abs(calPctDelta) * 80 * calPenaltyDir;
-  const proteinFrac    = perMealProtein > 0 ? item.protein / perMealProtein : 0;
-  const proteinScore   = Math.min(100, proteinFrac * 100);
-  const sugarPenalty   = Math.min(35, item.sugar * 1.3);
-  return finalizeScore(calScore * 0.45 + proteinScore * 0.45 - sugarPenalty);
+
+  let calScore;
+  if (calDelta > 0) {
+    const overMult = bmi >= 25 ? 1.8 : (bmi < 18.5 ? 1.5 : 1.2);
+    calScore = 100 - Math.abs(calPctDelta) * 80 * overMult;
+  } else if (bmi < 18.5) {
+    calScore = 100 - Math.abs(calPctDelta) * 80 * 1.4;
+  } else {
+    calScore = 100 - Math.min(8, Math.abs(calPctDelta) * 80 * 0.3);
+  }
+
+  const proteinFrac  = perMealProtein > 0 ? item.protein / perMealProtein : 0;
+  const proteinScore = Math.min(100, proteinFrac * 100);
+  const sugarPenalty = Math.min(40, item.sugar * 1.4);
+  return finalizeScore(calScore * 0.55 + proteinScore * 0.35 - sugarPenalty);
 }
 
 function finalizeScore(raw) {
@@ -2232,7 +2465,34 @@ function finalizeScore(raw) {
 }
 
 // ── SCREEN 5: PRODUCT SELECTION ───────────────────────────────────────────────
+// Fisher-Yates shuffle - returns a new array, does not mutate the input.
+function shuffle(array) {
+  const a = array.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Randomize display order once per participant (not per render) so the
+// recommended item isn't always first - the position itself would otherwise
+// confound "chose the recommendation" with "chose whatever was on top".
+// The chosen order is recorded in state.itemOrder for the response payload.
+function ensureItemOrder() {
+  if (Object.keys(state.itemOrder).length) return;
+  MEAL_ORDER.forEach(meal => {
+    state.itemOrder[meal] = shuffle(PRODUCTS[meal].map(p => p.id));
+  });
+  state.itemOrder.drinks = shuffle(PRODUCTS.drinks.map(p => p.id));
+}
+
+function orderedItems(catalog, order) {
+  return order.map(id => catalog.find(p => p.id === id));
+}
+
 function buildProductScreen() {
+  ensureItemOrder();
   const container = document.getElementById('meals-container');
   container.innerHTML = '';
   MEAL_ORDER.forEach(meal => {
@@ -2250,8 +2510,8 @@ function buildProductScreen() {
       <div class="product-grid" data-meal="${meal}" data-kind="drink" role="group" aria-label="${MEAL_LABELS[meal]} drink options"></div>
     `;
     container.appendChild(section);
-    renderItems(section.querySelector('[data-kind="food"]'),  PRODUCTS[meal],   meal, 'food');
-    renderItems(section.querySelector('[data-kind="drink"]'), PRODUCTS.drinks, meal, 'drink');
+    renderItems(section.querySelector('[data-kind="food"]'),  orderedItems(PRODUCTS[meal], state.itemOrder[meal]),   meal, 'food');
+    renderItems(section.querySelector('[data-kind="drink"]'), orderedItems(PRODUCTS.drinks, state.itemOrder.drinks), meal, 'drink');
   });
   updateCompletionStatus();
 }
@@ -2304,8 +2564,11 @@ function renderItems(grid, items, meal, kind) {
     inner += `<div class="product-name">${item.name}</div>`;
 
     if (cond === 'information' || cond === 'nudge') {
-      inner += `<div class="product-meta">${item.cal} cal &middot; ${item.sugar}g sugar</div>`;
-      inner += `<div><span class="tier-badge tier-${item.tier}">${item.tier}</span></div>`;
+      // Raw numbers only, deliberately no LOW/MED/HIGH label - a label is
+      // itself an interpretation, and the point of the 'information'
+      // condition is to isolate raw facts from the interpretive condition's
+      // added judgment (score + label).
+      inner += `<div class="product-meta">${item.cal} cal &middot; ${item.protein}g protein &middot; ${item.sugar}g sugar</div>`;
     } else if (cond === 'interpretive') {
       const s = interpretiveScore(item, kind, bmi, dailyCal, dailyProtein);
       inner += `<div class="product-meta">${item.cal} cal &middot; ${item.protein}g protein &middot; ${item.sugar}g sugar</div>`;
@@ -2336,6 +2599,17 @@ function selectProduct(card, key, item) {
   });
   card.classList.add('selected');
   card.setAttribute('aria-pressed', 'true');
+
+  const prior = state.chosen[key];
+  const isChange = !!prior && prior.id !== item.id;
+  if (isChange) state.choiceChanges++;
+  state.choiceTimeline.push({
+    key,
+    item_id: item.id,
+    ms: state.productPageStart ? Date.now() - state.productPageStart : 0,
+    is_change: isChange,
+  });
+
   state.chosen[key] = item;
   document.getElementById('err-selection').classList.remove('visible');
   document.querySelectorAll('.meal-section--missing').forEach(s => s.classList.remove('meal-section--missing'));
@@ -2380,7 +2654,12 @@ async function runSwapSequence() {
 
   for (const entry of entries) {
     const chosen = state.chosen[entry.key];
-    if (!chosen || chosen.recommended) continue;
+    // Only nudge when the choice is actually non-ideal. v1 exempted only the
+    // single item flagged "recommended", so a participant who picked any
+    // other LOW-tier (already healthy) item still got interrupted - up to
+    // 8 times in a row in the worst case. Skipping every LOW-tier choice
+    // means the prompt fires only when it's warranted.
+    if (!chosen || chosen.tier === 'LOW') continue;
     const recommended = entry.catalog.find(p => p.recommended);
     state.swapOffered[entry.key] = true;
     const accepted = await showSwapModal(recommended, entry.kind, entry.mealLabel);
@@ -2453,13 +2732,25 @@ function screen6Next() {
   goToId('s_sreact');
 }
 
-// ── SCREEN: STATE REACTANCE TO NUDGE ──────────────────────────────────────────
+// ── SCREEN: STATE REACTANCE TO NUDGE (anger) ──────────────────────────────────
 function screenSreactNext() {
   const names = ['state_reactance_irritated','state_reactance_annoyed',
                  'state_reactance_angry','state_reactance_aggravated'];
   const { valid, values } = validateLikertBlock(names, 'err-sreact');
   if (!valid) return;
   state.stateReactance = values;
+  goToId('s_reactance2');
+}
+
+// ── SCREEN: STATE REACTANCE (freedom + counterarguing) ────────────────────────
+function screenReactance2Next() {
+  const freedomNames = MEASURES.reactanceFreedom.map(it => it.name);
+  const counterNames = MEASURES.reactanceCounter.map(it => it.name);
+  const r1 = validateLikertBlock(freedomNames, 'err-reactance-freedom');
+  const r2 = validateLikertBlock(counterNames, 'err-reactance-counter');
+  if (!r1.valid || !r2.valid) return;
+  state.reactanceFreedom = r1.values;
+  state.reactanceCounter = r2.values;
   goToId('s_appout');
 }
 
@@ -2472,6 +2763,96 @@ function screenAppoutNext() {
   if (!r1.valid || !r2.valid) return;
   state.perceivedUsefulness = r1.values;
   state.continuedUse        = r2.values;
+  goToId('s_comprehension');
+}
+
+// ── SCREEN: COMPREHENSION (self-report) ───────────────────────────────────────
+function screenComprehensionNext() {
+  const names = MEASURES.comprehension.map(it => it.name);
+  const { valid, values } = validateLikertBlock(names, 'err-comprehension');
+  if (!valid) return;
+  state.comprehension = values;
+  buildRankScreen();
+  goToId('s_rank');
+}
+
+// ── SCREEN: COMPREHENSION (ranking task) ──────────────────────────────────────
+// Ground truth is the catalog's own calorie ordering (strictly monotonic with
+// tier for this item set, so there are no ties to arbitrate). The score is
+// the fraction of the 6 pairwise comparisons the participant's tap order
+// gets right - a partial-credit measure rather than all-or-nothing.
+const RANK_ITEMS = PRODUCTS.lunch; // chicken_salad < turkey_wrap < pasta_marinara < burger_fries by cal
+let rankOrderIds = [];
+
+function buildRankScreen() {
+  rankOrderIds = [];
+  state.rankOrder = [];
+  state.rankScore = null;
+  const grid = document.getElementById('rank-grid');
+  grid.innerHTML = '';
+  const shuffled = shuffle(RANK_ITEMS.map(p => p.id));
+  shuffled.forEach(id => {
+    const item = RANK_ITEMS.find(p => p.id === id);
+    const card = document.createElement('div');
+    card.className = 'rank-card';
+    card.dataset.id = item.id;
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', item.name);
+    card.innerHTML = `
+      <div class="rank-badge" aria-hidden="true"></div>
+      <span class="product-emoji" aria-hidden="true">${item.emoji}</span>
+      <div class="product-name">${item.name}</div>
+    `;
+    card.addEventListener('click', () => toggleRank(card, item.id));
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRank(card, item.id); }
+    });
+    grid.appendChild(card);
+  });
+  updateRankHint();
+}
+
+function toggleRank(card, id) {
+  const idx = rankOrderIds.indexOf(id);
+  if (idx === -1) {
+    rankOrderIds.push(id);
+  } else {
+    // Tapping a ranked item undoes it and everything ranked after it, so the
+    // sequence stays contiguous and unambiguous.
+    rankOrderIds = rankOrderIds.slice(0, idx);
+  }
+  document.querySelectorAll('#rank-grid .rank-card').forEach(c => {
+    const pos = rankOrderIds.indexOf(c.dataset.id);
+    c.classList.toggle('ranked', pos !== -1);
+    c.querySelector('.rank-badge').textContent = pos !== -1 ? String(pos + 1) : '';
+  });
+  updateRankHint();
+  document.getElementById('err-rank').classList.remove('visible');
+}
+
+function updateRankHint() {
+  const hint = document.getElementById('rank-hint');
+  if (hint) hint.textContent = `${rankOrderIds.length} of ${RANK_ITEMS.length} ranked · tap an item to undo its rank`;
+}
+
+function screenRankNext() {
+  if (rankOrderIds.length !== RANK_ITEMS.length) {
+    document.getElementById('err-rank').classList.add('visible');
+    return;
+  }
+  const groundTruth = RANK_ITEMS.slice().sort((a, b) => a.cal - b.cal).map(p => p.id);
+  let concordant = 0, pairs = 0;
+  for (let i = 0; i < groundTruth.length; i++) {
+    for (let j = i + 1; j < groundTruth.length; j++) {
+      pairs++;
+      const truthBefore = groundTruth.indexOf(groundTruth[i]) < groundTruth.indexOf(groundTruth[j]);
+      const gotBefore   = rankOrderIds.indexOf(groundTruth[i]) < rankOrderIds.indexOf(groundTruth[j]);
+      if (truthBefore === gotBefore) concordant++;
+    }
+  }
+  state.rankOrder = rankOrderIds.slice();
+  state.rankScore = Math.round((concordant / pairs) * 100) / 100;
   goToId('s_manip');
 }
 
@@ -2525,7 +2906,13 @@ async function submitData() {
   const payload = {
     participant_id:                state.participantId,
     timestamp:                     new Date().toISOString(),
+    code_version:                  CODE_VERSION,
     condition:                     state.condition,
+    breakfast_order:               (state.itemOrder.breakfast || []).join(','),
+    lunch_order:                   (state.itemOrder.lunch || []).join(','),
+    snack_order:                   (state.itemOrder.snack || []).join(','),
+    dinner_order:                  (state.itemOrder.dinner || []).join(','),
+    drink_order:                   (state.itemOrder.drinks || []).join(','),
     age:                           state.demographics.age,
     gender:                        state.demographics.gender,
     height_cm:                     state.demographics.height_cm,
@@ -2533,20 +2920,26 @@ async function submitData() {
     bmi:                           state.demographics.bmi,
     hunger_vas:                    state.hunger.hunger_vas,
     self_healthy:                  state.selfPerception.self_healthy,
-    self_fit:                      state.selfPerception.self_fit,
-    self_athletic:                 state.selfPerception.self_athletic,
     self_description:              state.selfPerception.self_description,
+    app_usage_freq:                state.controls.app_usage_freq,
+    app_usage_apps:                state.controls.app_usage_apps,
+    diet_restrictions:             state.controls.diet_restrictions,
     health_consc_1:                state.healthConsciousness.health_consc_1,
     health_consc_2:                state.healthConsciousness.health_consc_2,
     health_consc_3:                state.healthConsciousness.health_consc_3,
     health_consc_4:                state.healthConsciousness.health_consc_4,
     health_consc_5:                state.healthConsciousness.health_consc_5,
-    reg_promotion_1:               state.regulatoryFocus.reg_promotion_1,
-    reg_promotion_2:               state.regulatoryFocus.reg_promotion_2,
-    reg_promotion_3:               state.regulatoryFocus.reg_promotion_3,
-    reg_prevention_1:              state.regulatoryFocus.reg_prevention_1,
-    reg_prevention_2:              state.regulatoryFocus.reg_prevention_2,
-    reg_prevention_3:              state.regulatoryFocus.reg_prevention_3,
+    rfq_1:                         state.regulatoryFocus.rfq_1,
+    rfq_2:                         state.regulatoryFocus.rfq_2,
+    rfq_3:                         state.regulatoryFocus.rfq_3,
+    rfq_4:                         state.regulatoryFocus.rfq_4,
+    rfq_5:                         state.regulatoryFocus.rfq_5,
+    rfq_6:                         state.regulatoryFocus.rfq_6,
+    rfq_7:                         state.regulatoryFocus.rfq_7,
+    rfq_8:                         state.regulatoryFocus.rfq_8,
+    rfq_9:                         state.regulatoryFocus.rfq_9,
+    rfq_10:                        state.regulatoryFocus.rfq_10,
+    rfq_11:                        state.regulatoryFocus.rfq_11,
     trait_reactance_1:             state.traitReactance.trait_reactance_1,
     trait_reactance_2:             state.traitReactance.trait_reactance_2,
     trait_reactance_3:             state.traitReactance.trait_reactance_3,
@@ -2580,6 +2973,8 @@ async function submitData() {
     decision_effort_1:             state.decisionEffort.decision_effort_1,
     decision_effort_2:             state.decisionEffort.decision_effort_2,
     decision_effort_3:             state.decisionEffort.decision_effort_3,
+    choice_changes_count:          state.choiceChanges,
+    choice_timeline_json:          JSON.stringify(state.choiceTimeline),
     post_why:                      state.postChoice.post_why,
     post_confidence:               state.postChoice.post_confidence,
     post_satisfaction:             state.postChoice.post_satisfaction,
@@ -2587,6 +2982,13 @@ async function submitData() {
     state_reactance_annoyed:       state.stateReactance.state_reactance_annoyed,
     state_reactance_angry:         state.stateReactance.state_reactance_angry,
     state_reactance_aggravated:    state.stateReactance.state_reactance_aggravated,
+    reactance_freedom_1:           state.reactanceFreedom.reactance_freedom_1,
+    reactance_freedom_2:           state.reactanceFreedom.reactance_freedom_2,
+    reactance_freedom_3:           state.reactanceFreedom.reactance_freedom_3,
+    reactance_freedom_4:           state.reactanceFreedom.reactance_freedom_4,
+    reactance_counter_1:           state.reactanceCounter.reactance_counter_1,
+    reactance_counter_2:           state.reactanceCounter.reactance_counter_2,
+    reactance_counter_3:           state.reactanceCounter.reactance_counter_3,
     perceived_useful_1:            state.perceivedUsefulness.perceived_useful_1,
     perceived_useful_2:            state.perceivedUsefulness.perceived_useful_2,
     perceived_useful_3:            state.perceivedUsefulness.perceived_useful_3,
@@ -2594,6 +2996,11 @@ async function submitData() {
     continued_use_1:               state.continuedUse.continued_use_1,
     continued_use_2:               state.continuedUse.continued_use_2,
     continued_use_3:               state.continuedUse.continued_use_3,
+    comprehension_1:               state.comprehension.comprehension_1,
+    comprehension_2:               state.comprehension.comprehension_2,
+    comprehension_3:               state.comprehension.comprehension_3,
+    comprehension_rank_order:      state.rankOrder.join(','),
+    comprehension_rank_score:      state.rankScore,
     manipulation_check:            state.manipulationCheck,
     attention_check:               state.attentionCheck,
     attention_check_pass:          state.attentionCheck === 5,
@@ -2692,19 +3099,25 @@ const SCALE_INTENSITY = { left: 'Not at<br>all',         right: 'Extremely' };
 function buildLikert(containerId, items, scale) {
   const c = document.getElementById(containerId);
   if (!c) return;
-  c.innerHTML = items.map(it => `
+  c.innerHTML = items.map(it => {
+    const max = it.max || scale.max || 7;
+    const left = it.left || scale.left;
+    const right = it.right || scale.right;
+    const values = Array.from({ length: max }, (_, i) => i + 1);
+    return `
     <div class="likert-group">
       <div class="likert-question">${it.text}</div>
       <div class="likert-row">
-        <span class="likert-label">${scale.left}</span>
+        <span class="likert-label">${left}</span>
         <div class="likert-options" id="likert-${it.name}" role="radiogroup" aria-label="${(it.aria || it.text).replace(/"/g, '&quot;')}">
-          ${[1,2,3,4,5,6,7].map(v =>
+          ${values.map(v =>
             `<label><input type="radio" name="${it.name}" value="${v}"><div class="likert-btn">${v}</div></label>`
           ).join('')}
         </div>
-        <span class="likert-label right">${scale.right}</span>
+        <span class="likert-label right">${right}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // Item wording taken verbatim from the professor's survey-measures document.
@@ -2716,15 +3129,40 @@ const MEASURES = {
     { name: 'health_consc_4', text: 'I am conscious of the health consequences of what I eat.' },
     { name: 'health_consc_5', text: 'I usually consider health when choosing food or nutrition-related options.' },
   ],
-  regPromotion: [
-    { name: 'reg_promotion_1', text: 'I often think about how I can achieve my hopes and aspirations.' },
-    { name: 'reg_promotion_2', text: 'I focus on accomplishing positive outcomes in my life.' },
-    { name: 'reg_promotion_3', text: 'I am motivated by opportunities for growth and improvement.' },
+  // Validated Regulatory Focus Questionnaire (RFQ), Higgins et al. (2001).
+  // Replaces the earlier custom 6-item promotion/prevention scale. Administered
+  // in its canonical order (promotion and prevention items interleaved, not
+  // grouped under visible subheads) as validated, on a 1-5 frequency format.
+  // `reverse` marks items that are reverse-keyed at analysis time; the app
+  // stores raw responses only.
+  regfocus: [
+    { name: 'rfq_1',  text: "Compared to most people, are you typically unable to get what you want out of life?", left: 'Never or<br>Seldom', right: 'Very<br>Often', max: 5, reverse: true },
+    { name: 'rfq_2',  text: "Growing up, would you ever ‘cross the line’ by doing things that your parents would not tolerate?", left: 'Never or<br>Seldom', right: 'Very<br>Often', max: 5, reverse: true },
+    { name: 'rfq_3',  text: "How often have you accomplished things that got you ‘psyched’ to work even harder?", left: 'Never or<br>Seldom', right: 'Very<br>Often', max: 5, reverse: false },
+    { name: 'rfq_4',  text: "Did you get on your parents’ nerves often when you were growing up?", left: 'Never or<br>Seldom', right: 'Very<br>Often', max: 5, reverse: true },
+    { name: 'rfq_5',  text: "How often did you obey rules and regulations that were established by your parents?", left: 'Never or<br>Seldom', right: 'Always', max: 5, reverse: false },
+    { name: 'rfq_6',  text: "Growing up, did you ever act in ways that your parents thought were objectionable?", left: 'Never or<br>Seldom', right: 'Very<br>Often', max: 5, reverse: true },
+    { name: 'rfq_7',  text: "Do you often do well at different things that you try?", left: 'Never or<br>Seldom', right: 'Very<br>Often', max: 5, reverse: false },
+    { name: 'rfq_8',  text: "Not being careful enough has gotten me into trouble at times.", left: 'Never or<br>Seldom', right: 'Very<br>Often', max: 5, reverse: true },
+    { name: 'rfq_9',  text: "When it comes to achieving things that are important to me, I find that I don’t perform as well as I ideally would like to do.", left: 'Never<br>True', right: 'Very Often<br>True', max: 5, reverse: true },
+    { name: 'rfq_10', text: "I feel like I have made progress toward being successful in my life.", left: 'Certainly<br>False', right: 'Certainly<br>True', max: 5, reverse: false },
+    { name: 'rfq_11', text: "I have found very few hobbies or activities in my life that capture my interest or motivate me to put effort into them.", left: 'Certainly<br>False', right: 'Certainly<br>True', max: 5, reverse: true },
   ],
-  regPrevention: [
-    { name: 'reg_prevention_1', text: 'I often think about how I can avoid mistakes or negative outcomes.' },
-    { name: 'reg_prevention_2', text: 'I focus on fulfilling my responsibilities and obligations.' },
-    { name: 'reg_prevention_3', text: 'I am motivated by the need to stay safe and prevent problems.' },
+  reactanceFreedom: [
+    { name: 'reactance_freedom_1', text: 'The app threatened my freedom to choose.' },
+    { name: 'reactance_freedom_2', text: 'The app tried to make a decision for me.' },
+    { name: 'reactance_freedom_3', text: 'The app tried to manipulate me.' },
+    { name: 'reactance_freedom_4', text: 'The app tried to pressure me.' },
+  ],
+  reactanceCounter: [
+    { name: 'reactance_counter_1', text: 'While using the app, I found myself disagreeing with what it suggested.' },
+    { name: 'reactance_counter_2', text: 'While using the app, I was thinking of reasons why its suggestions were wrong for me.' },
+    { name: 'reactance_counter_3', text: 'I was critical of what the app recommended.' },
+  ],
+  comprehension: [
+    { name: 'comprehension_1', text: 'This app is helpful for me to evaluate the food options.' },
+    { name: 'comprehension_2', text: 'This app is helpful in familiarizing myself with the food options.' },
+    { name: 'comprehension_3', text: 'This app is helpful for me to understand the nutritional quality of the food options.' },
   ],
   trait: [
     { name: 'trait_reactance_1', text: 'I become frustrated when I feel that my freedom of choice is restricted.' },
@@ -2735,7 +3173,10 @@ const MEASURES = {
   deffort: [
     { name: 'decision_effort_1', text: 'Making this decision required a lot of effort.' },
     { name: 'decision_effort_2', text: 'I found it difficult to decide which option to choose.' },
-    { name: 'decision_effort_3', text: 'I had to think carefully before making my choice.' },
+    // v1 wording ("I had to think carefully before making my choice.") measured
+    // deliberation, not cognitive load, contaminating the scale meant to test
+    // the effort route. Replaced with a load-specific item.
+    { name: 'decision_effort_3', text: 'This decision was mentally taxing.' },
   ],
   sreact: [
     { name: 'state_reactance_irritated',  text: 'Irritated' },
@@ -2760,23 +3201,31 @@ const MEASURES = {
 };
 
 function buildAllLikerts() {
-  buildLikert('block-health',         MEASURES.health,        SCALE_AGREE);
-  buildLikert('block-reg-promotion',  MEASURES.regPromotion,  SCALE_AGREE);
-  buildLikert('block-reg-prevention', MEASURES.regPrevention, SCALE_AGREE);
-  buildLikert('block-trait',          MEASURES.trait,         SCALE_AGREE);
-  buildLikert('block-deffort',        MEASURES.deffort,       SCALE_AGREE);
-  buildLikert('block-sreact',         MEASURES.sreact,        SCALE_INTENSITY);
-  buildLikert('block-useful',         MEASURES.useful,        SCALE_AGREE);
-  buildLikert('block-continue',       MEASURES.continueUse,   SCALE_AGREE);
-  buildLikert('block-attn',           MEASURES.attn,          SCALE_AGREE);
+  buildLikert('block-health',            MEASURES.health,           SCALE_AGREE);
+  buildLikert('block-regfocus',          MEASURES.regfocus,         SCALE_AGREE);
+  buildLikert('block-trait',             MEASURES.trait,            SCALE_AGREE);
+  buildLikert('block-deffort',           MEASURES.deffort,          SCALE_AGREE);
+  buildLikert('block-sreact',            MEASURES.sreact,           SCALE_INTENSITY);
+  buildLikert('block-reactance-freedom', MEASURES.reactanceFreedom, SCALE_AGREE);
+  buildLikert('block-reactance-counter', MEASURES.reactanceCounter, SCALE_AGREE);
+  buildLikert('block-useful',            MEASURES.useful,           SCALE_AGREE);
+  buildLikert('block-continue',          MEASURES.continueUse,      SCALE_AGREE);
+  buildLikert('block-comprehension',     MEASURES.comprehension,    SCALE_AGREE);
+  buildLikert('block-attn',              MEASURES.attn,             SCALE_AGREE);
 }
 
 // Init
 buildAllLikerts();
 setupSliders();
+setupExclusiveNone('app_used');
+setupExclusiveNone('diet_restriction');
 setHeightUnit('imperial');
 setWeightUnit('imperial');
-setProgress('s1');
+if (sessionStorage.getItem('gatePassed') === '1') {
+  goToId('s1');
+} else {
+  setProgress('s_gate');
+}
 </script>
 </body>
 </html>

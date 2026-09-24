@@ -1930,9 +1930,8 @@ const CODE_VERSION = '2.0.0';
 const TEST_CODE = 'TESTMODE';
 
 // Nicequest panel redirect - fired from the debrief screen once the survey
-// is fully complete. tp encodes the outcome; ticket carries this response's
-// id (returned by the Apps Script on submission) so the panel can match it
-// back to the respondent.
+// is fully complete. tp encodes the outcome; ticket carries state.participantId
+// so the panel can match it back to the respondent.
 const NICEQUEST_URL = 'https://transit.nicequest.com/transit/participation';
 const NICEQUEST_OUTCOMES = {
   complete:     'co_0',
@@ -2006,7 +2005,6 @@ const PRODUCTS = {
 // swapOffered/swapAccepted use the same keys.
 const state = {
   participantId:      null,
-  dbResponseId:       null,  // id the Apps Script generated for this row, filled in after submitData()
   condition:          null,
   isTest:             false,
   hunger:             {},
@@ -3078,26 +3076,23 @@ async function submitData() {
     return;
   }
 
-  const result = await saveToSheets(payload);
-  state.dbResponseId = result.id;
+  const saved = await saveToSheets(payload);
 
-  if (result.ok) {
+  if (saved) {
     showSuccess(code);
   } else {
     showFallback(payload, code);
   }
 }
 
-// Posts to the Apps Script endpoint, which appends a row and returns a
-// generated id for it - the redirect back to Nicequest uses this as ticket.
 async function saveToSheets(payload) {
-  if (!SHEETS_URL) return { ok: false, id: null };
+  if (!SHEETS_URL) return false;
   try {
     const res  = await fetch(SHEETS_URL, { method: 'POST', body: JSON.stringify(payload) });
     const json = await res.json();
-    return { ok: json.status === 'ok', id: json.id || null };
+    return json.status === 'ok';
   } catch {
-    return { ok: false, id: null };
+    return false;
   }
 }
 
@@ -3131,14 +3126,13 @@ function showFallback(payload, code) {
 
 // Fired from the "Finish" button on the debrief screen (the true end of the
 // survey). Sends the respondent back to Nicequest with the outcome code for
-// their response and this response's database id as the ticket.
+// their response and this session's participant_id as the ticket - already
+// unique per response and generated client-side, so no round trip needed.
 function finishAndRedirect() {
   const outcome = state.attentionCheck !== null && state.attentionCheck !== 5
     ? NICEQUEST_OUTCOMES.filterOut
     : NICEQUEST_OUTCOMES.complete;
-  const ticket = state.dbResponseId !== null && state.dbResponseId !== undefined
-    ? state.dbResponseId
-    : '';
+  const ticket = state.participantId || '';
   window.location.href = `${NICEQUEST_URL}?tp=${outcome}&c=ok&ticket=${ticket}`;
 }
 

@@ -1250,23 +1250,13 @@
 <main>
 
 <!-- ══════════════════════════════════════
-     Screen 0 - Access Gate
+     Screen 0 - Quota Check
 ══════════════════════════════════════ -->
-<section class="screen active" id="s_gate">
-  <div class="card">
+<section class="screen active" id="s_check">
+  <div class="card" style="text-align:center">
     <h1>Food Choice Study</h1>
-    <h2>Access Code Required</h2>
-    <p>This study is open only to participants recruited through the university mailing list or classroom announcement. Please enter the access code provided there to continue.</p>
-
-    <div class="field">
-      <label class="label" for="gate-code">Access code</label>
-      <input type="text" id="gate-code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter code" />
-      <div class="error-msg" id="err-gate" role="alert">That code is not correct. Please check it and try again.</div>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="screenGateNext()">Continue &rarr;</button>
-    </div>
+    <div class="spinner" role="status" aria-label="Checking availability"></div>
+    <p style="color:var(--ink-mute)">Checking availability…</p>
   </div>
 </section>
 
@@ -1889,7 +1879,10 @@
     <p><strong>Researcher:</strong> Aniket Sengupta Ph.D &middot; <strong>a.sengupta@uniandes.edu.co</strong></p>
 
     <div class="debrief-close">
-      <p style="font-size:1.05rem;font-weight:600;margin-bottom:0">You may now close this window.</p>
+      <p style="font-size:1.05rem;font-weight:600;margin-bottom:0">Thank you for your participation.</p>
+      <div class="btn-row" style="justify-content:center;margin-top:16px">
+        <button class="btn btn-primary" onclick="finishAndRedirect()">Finish</button>
+      </div>
     </div>
 
     <div class="survey-logos">
@@ -1928,27 +1921,40 @@
 // by which version of the instrument produced them.
 const CODE_VERSION = '2.0.0';
 
-// Shared access code, gates the very first screen so the link can't be
-// completed by someone who stumbled onto the URL. This is a lightweight
-// deterrent, not real authentication - distribute it only through the
-// IRB-approved recruitment channel (mailing list / classroom announcement),
-// never appended to the shareable link itself.
-const ACCESS_CODE = 'ANDES2026';
-
-// Entering this instead of ACCESS_CODE at the gate skips straight to
-// submission with auto-filled dummy answers, tagged is_test: true in the
-// payload. Use it to confirm Supabase + the Google Sheet are both wired up
-// correctly without walking the whole survey by hand. Change this too before
-// running the real study, so a participant can't stumble into test mode.
+// Appending ?test=TESTMODE to the URL skips straight to submission with
+// auto-filled dummy answers, tagged is_test: true in the payload. Use it to
+// confirm the Google Sheet endpoint is wired up correctly without walking
+// the whole survey by hand. Change this before running the real study so a
+// participant can't stumble into test mode, and never distribute a link
+// with this parameter attached.
 const TEST_CODE = 'TESTMODE';
 
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyUxAgH8XH9Gllx15zR543LzFuLPBXvbNRyQ56_U5rb27ZdjEZ-J7M8LY51vIIJVts/exec';
+// Nicequest panel redirect - fired from the debrief screen once the survey
+// is fully complete. tp encodes the outcome; ticket carries this response's
+// id (returned by the Apps Script on submission) so the panel can match it
+// back to the respondent.
+const NICEQUEST_URL = 'https://transit.nicequest.com/transit/participation';
+const NICEQUEST_OUTCOMES = {
+  complete:     'co_0',
+  filterOut:    'fo_0',
+  quotaFull:    'qf_1',
+  qualityCheck: 'dr_0',  // reserved - nothing triggers this yet
+};
 
-// Supabase (primary data store). Create the table with supabase-setup.sql,
-// then paste your project URL and anon (public) key below.
-const SUPABASE_URL      = 'https://yygwsxpfkqnpkqctsjgs.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5Z3dzeHBma3FucGtxY3RzamdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNzk5MTgsImV4cCI6MjA5ODc1NTkxOH0.WF0FzVO_zm4BKcKhRdlfRh_CAX1MpJda_X7kjon-ICA';
-const SUPABASE_TABLE    = 'study_responses';
+// Pilot sample targets. Balancing across the 4 conditions happens silently
+// inside the app (a full condition is just excluded from random assignment,
+// nobody is sent away for it); only once the whole pilot is full does a new
+// visitor get redirected out via NICEQUEST_OUTCOMES.quotaFull, before the
+// survey starts. Real caps come from the Apps Script's ?action=counts
+// endpoint, so these numbers stay right even mid-pilot.
+const CONDITION_QUOTA    = 25;
+const PILOT_TOTAL_QUOTA  = CONDITION_QUOTA * 4;
+
+// Google Sheets (via Apps Script) is the only data store - see
+// setup-instructions.md. doPost appends a row and returns a generated id
+// (used as the Nicequest ticket); doGet(?action=counts) returns completed
+// per-condition counts for the pilot-quota checks above.
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyUxAgH8XH9Gllx15zR543LzFuLPBXvbNRyQ56_U5rb27ZdjEZ-J7M8LY51vIIJVts/exec';
 
 // ── PRODUCTS ─────────────────────────────────────────────────────────────────
 // Each item: cal, protein (g), sugar (g), tier (LOW/MED/HIGH), recommended.
@@ -2000,6 +2006,7 @@ const PRODUCTS = {
 // swapOffered/swapAccepted use the same keys.
 const state = {
   participantId:      null,
+  dbResponseId:       null,  // id the Apps Script generated for this row, filled in after submitData()
   condition:          null,
   isTest:             false,
   hunger:             {},
@@ -2035,11 +2042,16 @@ const state = {
 let swapResolve = null;
 let swapReturnFocus = null;
 
+// Per-condition completed-response counts (non-test rows), refreshed at
+// page load by fetchPilotCounts() and consulted by assignCondition() so a
+// full condition is skipped rather than assigned.
+let pilotCounts = { control: 0, information: 0, nudge: 0, interpretive: 0 };
+
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
 // Ordered list of screen ids. Insert new screens here to reposition them in the
 // flow; navigation, the progress pill, and the step counter all derive from this.
 const SCREENS = [
-  's_gate',        // access code
+  's_check',       // quota check (async, before consent)
   's1',            // consent + eligibility
   's_hunger',      // hunger VAS (pre-task)
   's2',            // physical profile: height / weight / BMI (pre-task; feeds scoring)
@@ -2089,30 +2101,10 @@ function setProgress(id) {
   if (counter) counter.textContent = String(n).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
 }
 
-// ── SCREEN 0: ACCESS GATE ─────────────────────────────────────────────────────
-function screenGateNext() {
-  const input = document.getElementById('gate-code').value.trim();
-  const err = document.getElementById('err-gate');
-
-  if (input.toLowerCase() === TEST_CODE.toLowerCase()) {
-    err.classList.remove('visible');
-    runTestSubmission();
-    return;
-  }
-
-  if (input.toLowerCase() !== ACCESS_CODE.toLowerCase()) {
-    err.classList.add('visible');
-    return;
-  }
-  err.classList.remove('visible');
-  sessionStorage.setItem('gatePassed', '1');
-  goToId('s1');
-}
-
 // Fills every field with valid dummy data and submits through the real
-// Supabase + Sheets pipeline, tagged is_test: true, so a researcher can
-// confirm both destinations are wired up correctly without hand-walking
-// the entire survey. Skipped entirely for real participants.
+// Google Sheets pipeline, tagged is_test: true, so a researcher can confirm
+// the endpoint is wired up correctly without hand-walking the entire
+// survey. Skipped entirely for real participants.
 function likertDummy(items, value) {
   return Object.fromEntries(items.map(it => [it.name, value]));
 }
@@ -2462,7 +2454,12 @@ function assignCondition() {
         ? CONDITIONS[idx]
         : (CONDITIONS[parseInt(override)] || CONDITIONS[Math.floor(Math.random() * CONDITIONS.length)]);
     } else {
-      state.condition = CONDITIONS[Math.floor(Math.random() * CONDITIONS.length)];
+      // Balance conditions silently: pick only among conditions still under
+      // quota. If pilotCounts is stale/unavailable or all four read as
+      // full, fall back to the full pool rather than get stuck.
+      const open = CONDITIONS.filter(c => (pilotCounts[c] || 0) < CONDITION_QUOTA);
+      const pool = open.length > 0 ? open : CONDITIONS;
+      state.condition = pool[Math.floor(Math.random() * pool.length)];
     }
     sessionStorage.setItem('participantId', state.participantId);
     sessionStorage.setItem('condition', state.condition);
@@ -3076,52 +3073,47 @@ async function submitData() {
 
   const code = state.participantId.slice(-6).toUpperCase();
 
-  if (!SUPABASE_URL && !SHEETS_URL) {
+  if (!SHEETS_URL) {
     showFallback(payload, code);
     return;
   }
 
-  // Save to Supabase and Google Sheets in parallel. The response counts as
-  // saved if at least one destination accepts it.
-  const [supabaseOk, sheetsOk] = await Promise.all([
-    saveToSupabase(payload),
-    saveToSheets(payload),
-  ]);
+  const result = await saveToSheets(payload);
+  state.dbResponseId = result.id;
 
-  if (supabaseOk || sheetsOk) {
+  if (result.ok) {
     showSuccess(code);
   } else {
     showFallback(payload, code);
   }
 }
 
-async function saveToSupabase(payload) {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return false;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'apikey':        SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Prefer':        'return=minimal',
-      },
-      body: JSON.stringify(payload),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
+// Posts to the Apps Script endpoint, which appends a row and returns a
+// generated id for it - the redirect back to Nicequest uses this as ticket.
 async function saveToSheets(payload) {
-  if (!SHEETS_URL) return false;
+  if (!SHEETS_URL) return { ok: false, id: null };
   try {
     const res  = await fetch(SHEETS_URL, { method: 'POST', body: JSON.stringify(payload) });
     const json = await res.json();
-    return json.status === 'ok';
+    return { ok: json.status === 'ok', id: json.id || null };
   } catch {
-    return false;
+    return { ok: false, id: null };
+  }
+}
+
+// Reads completed (non-test) response counts per condition via the Apps
+// Script's ?action=counts endpoint - an aggregate only, not row data.
+// Returns null on any failure so callers can fail open.
+async function fetchPilotCounts() {
+  if (!SHEETS_URL) return null;
+  try {
+    const res = await fetch(`${SHEETS_URL}?action=counts`);
+    if (!res.ok) return null;
+    const counts = await res.json();
+    if (counts.status === 'error') return null;
+    return counts;
+  } catch {
+    return null;
   }
 }
 
@@ -3135,6 +3127,19 @@ function showFallback(payload, code) {
   document.getElementById('submit-spinner').style.display = 'none';
   document.getElementById('submit-error').style.display   = 'block';
   document.getElementById('fallback-json').textContent    = JSON.stringify(payload, null, 2);
+}
+
+// Fired from the "Finish" button on the debrief screen (the true end of the
+// survey). Sends the respondent back to Nicequest with the outcome code for
+// their response and this response's database id as the ticket.
+function finishAndRedirect() {
+  const outcome = state.attentionCheck !== null && state.attentionCheck !== 5
+    ? NICEQUEST_OUTCOMES.filterOut
+    : NICEQUEST_OUTCOMES.complete;
+  const ticket = state.dbResponseId !== null && state.dbResponseId !== undefined
+    ? state.dbResponseId
+    : '';
+  window.location.href = `${NICEQUEST_URL}?tp=${outcome}&c=ok&ticket=${ticket}`;
 }
 
 function copyFallback() {
@@ -3288,10 +3293,30 @@ setupExclusiveNone('app_used');
 setupExclusiveNone('diet_restriction');
 setHeightUnit('imperial');
 setWeightUnit('imperial');
-if (sessionStorage.getItem('gatePassed') === '1') {
-  goToId('s1');
+setProgress('s_check');
+
+if (new URLSearchParams(window.location.search).get('test') === TEST_CODE) {
+  runTestSubmission();
 } else {
-  setProgress('s_gate');
+  checkQuotaThenStart();
+}
+
+// Runs once on load, before the participant sees anything but the "Checking
+// availability" spinner. If the pilot's overall quota (PILOT_TOTAL_QUOTA)
+// is already full, this is a real visitor's only screen - they never reach
+// consent. Per-condition balancing does NOT happen here; that's silent,
+// inside assignCondition(), using the same counts.
+async function checkQuotaThenStart() {
+  pilotCounts = (await fetchPilotCounts()) || pilotCounts;
+  const total = Object.values(pilotCounts).reduce((a, b) => a + b, 0);
+
+  if (total >= PILOT_TOTAL_QUOTA) {
+    const incomingTicket = new URLSearchParams(window.location.search).get('ticket') || '';
+    window.location.href = `${NICEQUEST_URL}?tp=${NICEQUEST_OUTCOMES.quotaFull}&c=ok&ticket=${incomingTicket}`;
+    return;
+  }
+
+  goToId('s1');
 }
 </script>
 </body>

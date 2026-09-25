@@ -3570,14 +3570,18 @@ async function checkQuotaThenStart() {
 // backstop. Reads an aggregate flag only, never row data.
 async function ticketAlreadyUsed(ticket) {
   if (!SHEETS_URL || !ticket) return false;
-  try {
-    const res = await fetch(`${SHEETS_URL}?action=ticket_exists&ticket=${encodeURIComponent(ticket)}`);
-    if (!res.ok) return false;
-    const json = await res.json();
-    return json.exists === true;
-  } catch {
-    return false;
+  // 'ticket_exists' is the current Apps Script action; 'checkTicket' is the
+  // name an earlier backend used. Trying both keeps the duplicate check
+  // working whichever Apps Script version is deployed.
+  for (const action of ['ticket_exists', 'checkTicket']) {
+    try {
+      const res = await fetch(`${SHEETS_URL}?action=${action}&ticket=${encodeURIComponent(ticket)}`);
+      if (!res.ok) continue;
+      const json = await res.json();
+      if (typeof json.exists === 'boolean') return json.exists;
+    } catch { /* try the next action name */ }
   }
+  return false;
 }
 </script>
 </body>

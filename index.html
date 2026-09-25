@@ -1943,9 +1943,6 @@ const CODE_VERSION = '2.1.0';
 // with this parameter attached.
 const TEST_CODE = 'TESTMODE';
 
-// Nicequest panel redirect - fired from the debrief screen once the survey
-// is fully complete. tp encodes the outcome; ticket carries state.netquestId
-// (the Netquest ticket from the entry URL) so the panel can match it back.
 // ── QUALITY CONTROLS CONFIG ─────────────────────────────────────────────────
 // reCAPTCHA v3 site key (public). The SECRET key lives only in the Apps Script
 // (Script Properties -> RECAPTCHA_SECRET), never in this file.
@@ -1964,6 +1961,10 @@ const AGE_BANDS = { '18-19': [18, 19], '20-21': [20, 21], '22-23': [22, 23], '24
 const NON_TASK_SCREENS = ['s_check', 's4', 's7', 's8'];
 const OPEN_TEXT_IDS    = ['self-description', 'post-why'];
 
+// Nicequest panel redirect - fired from the debrief screen once the survey
+// is fully complete, or from checkQuotaThenStart() before it does. tp
+// encodes the outcome; ticket must be Netquest's own id for this
+// respondent (NOT anything we generate) so their system can match it back.
 const NICEQUEST_URL = 'https://transit.nicequest.com/transit/participation';
 const NICEQUEST_OUTCOMES = {
   complete:     'co_0',
@@ -1971,6 +1972,11 @@ const NICEQUEST_OUTCOMES = {
   quotaFull:    'qf_1',
   qualityCheck: 'dr_0',  // reserved - nothing triggers this yet
 };
+
+// Netquest appends ?ticket=<their id> to the link they send respondents.
+// We store it (Respondent_Netquest_ID column) and echo the SAME value back
+// in every redirect - captured once here, at load, before anything else runs.
+const NETQUEST_TICKET = new URLSearchParams(window.location.search).get('ticket') || '';
 
 // Pilot sample targets. Balancing across the 4 conditions happens silently
 // inside the app (a full condition is just excluded from random assignment,
@@ -3346,8 +3352,8 @@ function showFallback(payload, code) {
 
 // Fired from the "Finish" button on the debrief screen (the true end of the
 // survey). Sends the respondent back to Nicequest with the outcome code for
-// their response and this session's participant_id as the ticket - already
-// unique per response and generated client-side, so no round trip needed.
+// their response, and Netquest's own ticket id (state.netquestId = NETQUEST_TICKET) - never
+// anything we generated - so Netquest's system can match it.
 function finishAndRedirect() {
   const failedAttention = state.attentionCheck !== null && state.attentionCheck !== 5;
   const honeypot = ((document.getElementById('hp-field') || {}).value || '').length > 0;
@@ -3511,7 +3517,7 @@ setHeightUnit('imperial');
 setWeightUnit('imperial');
 setProgress('s_check');
 
-state.netquestId = new URLSearchParams(window.location.search).get('ticket') || '';
+state.netquestId = NETQUEST_TICKET;
 (function readPanelProfile() {
   const qp = new URLSearchParams(window.location.search);
   state.panelSexRaw = qp.get(PANEL_SEX_PARAM) || '';
@@ -3529,19 +3535,24 @@ if (new URLSearchParams(window.location.search).get('test') === TEST_CODE) {
 }
 
 // Runs once on load, before the participant sees anything but the "Checking
-// availability" spinner. If the pilot's overall quota (PILOT_TOTAL_QUOTA)
-// is already full, this is a real visitor's only screen - they never reach
-// consent. Per-condition balancing does NOT happen here; that's silent,
-// inside assignCondition(), using the same counts.
+// availability" spinner. Two reasons a real visitor might never reach
+// consent: their Netquest ticket was already used (filter out), or the
+// pilot's overall quota (PILOT_TOTAL_QUOTA) is already full. Per-condition
+// balancing does NOT happen here; that's silent, inside assignCondition(),
+// using the same counts.
 async function checkQuotaThenStart() {
-  // Duplicate guard: if this Netquest respondent already has a row in the
-  // sheet, send them straight to Filter Out instead of letting them retake.
-  if (state.netquestId && await ticketAlreadyUsed(state.netquestId)) {
+  const [alreadyUsed, counts] = await Promise.all([
+    ticketAlreadyUsed(state.netquestId),
+    fetchPilotCounts(),
+  ]);
+
+  // Duplicate guard: this Netquest ticket already has a row -> Filter Out.
+  if (alreadyUsed) {
     window.location.href = `${NICEQUEST_URL}?tp=${NICEQUEST_OUTCOMES.filterOut}&c=ok&ticket=${state.netquestId}`;
     return;
   }
 
-  pilotCounts = (await fetchPilotCounts()) || pilotCounts;
+  pilotCounts = counts || pilotCounts;
   const total = Object.values(pilotCounts).reduce((a, b) => a + b, 0);
 
   if (total >= PILOT_TOTAL_QUOTA) {

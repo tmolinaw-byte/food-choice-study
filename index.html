@@ -1316,7 +1316,7 @@
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-back" onclick="goToId('s1')">&larr; Back</button>
+      <button class="btn btn-back" onclick="goToId('s_demo')">&larr; Back</button>
       <button class="btn btn-primary" onclick="screenHungerNext()">Continue &rarr;</button>
     </div>
   </div>
@@ -1781,7 +1781,7 @@
     <div class="error-msg" id="err-attn" role="alert">Please select a response.</div>
     <div class="btn-row">
       <button class="btn btn-back" onclick="goToId('s_manip')">&larr; Back</button>
-      <button class="btn btn-primary" onclick="screenAttnNext()">Continue &rarr;</button>
+      <button class="btn btn-primary" onclick="screenAttnNext()">Submit Responses &rarr;</button>
     </div>
   </div>
 </section>
@@ -1792,8 +1792,8 @@
 <section class="screen" id="s_demo">
   <div class="card">
     <h1>About You</h1>
-    <h2>Demographic Information</h2>
-    <p>A few last questions. This information helps us understand the range of participants in the study.</p>
+    <h2>Before We Begin</h2>
+    <p>A few quick questions about you before the study starts.</p>
 
     <div class="field" id="field-age">
       <label class="label">Age</label>
@@ -1830,8 +1830,8 @@
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-back" onclick="goToId('s_attn')">&larr; Back</button>
-      <button class="btn btn-primary" onclick="screenDemoNext()">Submit Responses &rarr;</button>
+      <button class="btn btn-back" onclick="goToId('s1')">&larr; Back</button>
+      <button class="btn btn-primary" onclick="screenDemoNext()">Continue &rarr;</button>
     </div>
   </div>
 </section>
@@ -1849,22 +1849,15 @@
 
     <div id="submit-success">
       <h1 class="title-success">Thank You!</h1>
-      <p style="margin:16px 0">Your responses have been recorded. Please note your completion code for research credit:</p>
-      <div class="completion-code" id="completion-code"></div>
-      <p style="color:var(--muted);font-size:0.9rem">Show this code to your researcher or enter it where indicated to confirm participation.</p>
-      <div class="btn-row" style="justify-content:center;margin-top:24px">
-        <button class="btn btn-teal" onclick="goToId('s8')">View Debrief &rarr;</button>
-      </div>
+      <p style="margin:16px 0">Your responses have been recorded.</p>
     </div>
 
     <div id="submit-error">
-      <h1 class="title-warning">Submission Issue</h1>
-      <p style="margin:16px 0">We could not automatically save your response. Please <strong>copy the text below</strong> and email it to your researcher.</p>
-      <div class="fallback-box" id="fallback-json"></div>
-      <button class="btn btn-outline" onclick="copyFallback()">Copy to Clipboard</button>
-      <span class="copy-status" id="copy-status" role="status" aria-live="polite"></span>
+      <h1 class="title-warning">Connection Issue</h1>
+      <p style="margin:16px 0">We could not save your responses yet. Please check your connection and try again.</p>
+      <div class="fallback-box" id="fallback-json" style="display:none"></div>
       <div class="btn-row" style="justify-content:center;margin-top:24px">
-        <button class="btn btn-teal" onclick="goToId('s8')">Continue to Debrief &rarr;</button>
+        <button class="btn btn-teal" onclick="retrySubmit()">Try Again</button>
       </div>
     </div>
   </div>
@@ -1894,6 +1887,7 @@
 
     <div class="debrief-close">
       <p style="font-size:1.05rem;font-weight:600;margin-bottom:0">Thank you for your participation.</p>
+      <p style="color:var(--muted);font-size:0.9rem;margin-top:8px" id="redirect-countdown" aria-live="polite"></p>
       <div class="btn-row" style="justify-content:center;margin-top:16px">
         <button class="btn btn-primary" onclick="finishAndRedirect()">Finish</button>
       </div>
@@ -1933,7 +1927,7 @@
 // Bump this string any time a study.html deployment changes the screens,
 // products, condition logic, or scoring formula, so responses can be grouped
 // by which version of the instrument produced them.
-const CODE_VERSION = '2.1.0';
+const CODE_VERSION = '2.2.0';
 
 // Appending ?test=TESTMODE to the URL skips straight to submission with
 // auto-filled dummy answers, tagged is_test: true in the payload. Use it to
@@ -2098,6 +2092,7 @@ let pilotCounts = { control: 0, information: 0, nudge: 0, interpretive: 0 };
 const SCREENS = [
   's_check',       // quota check (async, before consent)
   's1',            // consent + eligibility
+  's_demo',        // screener: age range + exact age + gender, validated against Netquest profile
   's_hunger',      // hunger VAS (pre-task)
   's2',            // physical profile: height / weight / BMI (pre-task; feeds scoring)
   's3',            // self-perception (kept)
@@ -2116,8 +2111,7 @@ const SCREENS = [
   's_comprehension', // comprehension self-report (post-task, H5a)
   's_rank',        // comprehension ranking task (post-task, H5a)
   's_manip',       // manipulation / recall check
-  's_attn',        // attention check
-  's_demo',        // demographics: age + gender (end)
+  's_attn',        // attention check (last question; submits)
   's7',            // submission
   's8',            // debrief + logos
 ];
@@ -2205,7 +2199,7 @@ document.getElementById('consent-check').addEventListener('change', function () 
 
 function screen1Next() {
   if (!document.getElementById('consent-check').checked) return;
-  goToId('s_hunger');
+  goToId('s_demo');
 }
 
 // ── SCREEN: HUNGER VAS ────────────────────────────────────────────────────────
@@ -2982,7 +2976,7 @@ function screenAttnNext() {
   if (val === null) { if (err) err.classList.add('visible'); return; }
   if (err) err.classList.remove('visible');
   state.attentionCheck = val;
-  goToId('s_demo');
+  submitData();
 }
 
 // ── SCREEN: DEMOGRAPHICS (age + gender, end of survey) ────────────────────────
@@ -3009,7 +3003,45 @@ function screenDemoNext() {
 
   Object.assign(state.demographics, { age: ageRange, gender, age_exact: ageExact });
   evaluateProfile();
-  submitData();
+  if (state.profileFilterOut) { screenOutAndRedirect(); return; }
+  goToId('s_hunger');
+}
+
+// Screen-out right after the screener: saves a minimal row (so the ticket is
+// recorded and cannot re-enter) and sends the respondent to Netquest Filter Out.
+// Never blocks on the backend: redirects even if saving fails or is slow.
+async function screenOutAndRedirect() {
+  goToId('s7');
+  document.getElementById('submit-spinner').style.display = 'block';
+  if (!state.participantId) state.participantId = generateUUID();
+  const p = state.profile || {};
+  const payload = {
+    participant_id:         state.participantId,
+    Respondent_Netquest_ID: state.netquestId,
+    timestamp:              new Date().toISOString(),
+    code_version:           CODE_VERSION,
+    is_test:                state.isTest,
+    stage:                  'screen_out',
+    age:                    state.demographics.age,
+    gender:                 state.demographics.gender,
+    age_exact:              nz(state.demographics.age_exact),
+    panel_sex_raw:          state.panelSexRaw,
+    panel_age_raw:          state.panelAgeRaw,
+    panel_sex:              state.panelSex,
+    panel_age:              state.panelAge,
+    sex_match:              nz(p.sex_match),
+    age_match:              nz(p.age_match),
+    age_band_consistent:    nz(p.age_band_consistent),
+    age_declared_eligible:  nz(p.age_declared_eligible),
+    panel_age_eligible:     nz(p.panel_age_eligible),
+    profile_filter_out:     true,
+  };
+  try {
+    if (!state.nonce) state.nonce = await fetchNonce();
+    payload.session_nonce = state.nonce || '';
+    await Promise.race([saveToSheets(payload), new Promise(r => setTimeout(r, 6000))]);
+  } catch (_) { /* redirect regardless */ }
+  window.location.href = `${NICEQUEST_URL}?tp=${NICEQUEST_OUTCOMES.filterOut}&c=ok&ticket=${state.netquestId}`;
 }
 
 // Profile validation against the panel (Netquest) variables.
@@ -3290,6 +3322,7 @@ async function submitData() {
     ...collectBehaviorFields(),
   };
 
+  if (!state.participantId) state.participantId = generateUUID();
   const code = state.participantId.slice(-6).toUpperCase();
 
   if (!SHEETS_URL) {
@@ -3338,16 +3371,40 @@ async function fetchPilotCounts() {
   }
 }
 
+// Saved -> straight to the debrief, which returns the respondent to Netquest
+// automatically (they can also press Finish). No completion code is shown:
+// Netquest credits the respondent through the redirect itself.
+const AUTO_REDIRECT_SECONDS = 15;
 function showSuccess(code) {
   document.getElementById('submit-spinner').style.display = 'none';
-  document.getElementById('submit-success').style.display = 'block';
-  document.getElementById('completion-code').textContent  = code;
+  goToId('s8');
+  startAutoRedirect();
+}
+
+function startAutoRedirect() {
+  let left = AUTO_REDIRECT_SECONDS;
+  const el = document.getElementById('redirect-countdown');
+  const tick = () => {
+    if (el) el.textContent = `You will be returned to the panel automatically in ${left} seconds.`;
+    if (left <= 0) { finishAndRedirect(); return; }
+    left -= 1;
+    setTimeout(tick, 1000);
+  };
+  tick();
 }
 
 function showFallback(payload, code) {
   document.getElementById('submit-spinner').style.display = 'none';
   document.getElementById('submit-error').style.display   = 'block';
   document.getElementById('fallback-json').textContent    = JSON.stringify(payload, null, 2);
+}
+
+// Retry after a failed save with a fresh session token (the previous one may
+// have been consumed or expired).
+function retrySubmit() {
+  document.getElementById('submit-error').style.display = 'none';
+  state.nonce = '';
+  submitData();
 }
 
 // Fired from the "Finish" button on the debrief screen (the true end of the
